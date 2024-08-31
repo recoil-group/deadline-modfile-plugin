@@ -1,0 +1,3 @@
+[submodule "package/packager"]
+	path = package/packager
+	url = https://github.com/recoil-group/deadline-modfile-packager/
