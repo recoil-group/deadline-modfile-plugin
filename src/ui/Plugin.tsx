@@ -120,6 +120,7 @@ export function Plugin({ plugin }: props): React.Element {
 						module.Parent = game.Workspace;
 
 						Selection.Set([module]);
+						set_problem("");
 						plugin.PromptSaveSelection(`${current_selection[0].Name}.modfile`);
 						Selection.Set(current_selection);
 						module.Destroy();
@@ -127,8 +128,6 @@ export function Plugin({ plugin }: props): React.Element {
 
 					if (!success) {
 						set_problem(`error while exporting: ${fail}`);
-					} else {
-						set_problem("");
 					}
 				}}
 				layout_order={4}
