@@ -127,6 +127,8 @@ export function Plugin({ plugin }: props): React.Element {
 
 					if (!success) {
 						set_problem(`error while exporting: ${fail}`);
+					} else {
+						set_problem("");
 					}
 				}}
 				layout_order={4}
