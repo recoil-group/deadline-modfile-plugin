@@ -6,6 +6,7 @@ import { Button } from "./component/Button";
 
 const Selection = game.GetService("Selection");
 const ServerScriptService = game.GetService("ServerScriptService");
+const Workspace = game.GetService("Workspace");
 
 function unpack_modfile(modfile: Modfile.file) {
 	const { class_declarations, instance_declarations, script_declarations, map_declarations } = modfile;
@@ -49,10 +50,11 @@ type props = {
 
 export function Plugin({ plugin }: props): React.Element {
 	const input_ref = React.useRef<TextBox>();
+	const [problem, set_problem] = React.useState("");
 
 	return (
 		<frame {...RESET_FRAME} Size={new UDim2(1, 0, 1, 0)} BackgroundColor3={SDK_UI_STYLE.zinc900[0].getValue()}>
-			<uilistlayout Padding={new UDim(0, 8)} />
+			<uilistlayout Padding={new UDim(0, 8)} SortOrder={"LayoutOrder"} />
 			{padding(16)}
 
 			<textlabel
@@ -61,6 +63,7 @@ export function Plugin({ plugin }: props): React.Element {
 				Text={`Deadline Modding Tool ${ModfilePackager.PACKAGER_VERSION}`}
 				TextXAlignment={"Left"}
 				TextSize={24}
+				LayoutOrder={1}
 			/>
 
 			<textlabel
@@ -68,33 +71,84 @@ export function Plugin({ plugin }: props): React.Element {
 				TextColor3={SDK_UI_STYLE.zinc400[0]}
 				TextWrapped={true}
 				TextXAlignment={"Left"}
-				Text={
-					"Please always make sure this plugin is up to date, or it might not work anymore, as it's still in development."
-				}
+				Text={"Please always make sure this plugin is up to date, or it might not work anymore."}
 				TextSize={16}
+				LayoutOrder={2}
 			/>
 
-			<frame Size={new UDim2(1, 0, 0, 1)} BackgroundColor3={SDK_UI_STYLE.zinc800[0]} BorderSizePixel={0} />
+			<frame
+				Size={new UDim2(1, 0, 0, 1)}
+				BackgroundColor3={SDK_UI_STYLE.zinc800[0]}
+				BorderSizePixel={0}
+				LayoutOrder={3}
+			/>
 
 			{/* export */}
 			<Button
 				text={"export selected instance"}
 				onclick={() => {
 					const current_selection = Selection.Get();
-					const out = ModfilePackager.encode(current_selection[0]);
+					const has_mod_marker = Workspace.FindFirstChild("DeadlineTestMod");
 
-					const module = new Instance("ModuleScript");
-					module.Source = `load_modfile('${out}')`;
-					module.Parent = game.Workspace;
+					if (current_selection[0] === undefined) {
+						let message = "You didn't select anything. Select the mod folder you want to export.";
+						if (has_mod_marker)
+							message +=
+								"\nThere is a DeadlineTestMod in the workspace, which is probably what you're trying to select. Select it and then click export again.";
+						set_problem(message);
 
-					Selection.Set([module]);
-					plugin.PromptSaveSelection(`${current_selection[0].Name}.modfile`);
-					Selection.Set(current_selection);
-					module.Destroy();
+						return;
+					}
+
+					if (current_selection[0].IsA("Folder") === false) {
+						let message =
+							"You didn't select a folder, which means you likely didn't select the right thing. Select the mod folder you want to export.";
+						if (has_mod_marker)
+							message +=
+								"\nThere is a DeadlineTestMod in the workspace, which is probably what you're trying to select. Select it and then click export again.";
+
+						set_problem(message);
+
+						return;
+					}
+
+					const [success, fail] = pcall(() => {
+						const out = ModfilePackager.encode(current_selection[0]);
+
+						const module = new Instance("ModuleScript");
+						module.Source = `load_modfile('${out}')`;
+						module.Parent = game.Workspace;
+
+						Selection.Set([module]);
+						plugin.PromptSaveSelection(`${current_selection[0].Name}.modfile`);
+						Selection.Set(current_selection);
+						module.Destroy();
+					});
+
+					if (!success) {
+						set_problem(`error while exporting: ${fail}`);
+					}
 				}}
+				layout_order={4}
 			/>
 
-			<frame Size={new UDim2(1, 0, 0, 1)} BackgroundColor3={SDK_UI_STYLE.zinc800[0]} BorderSizePixel={0} />
+			<textlabel
+				{...RESET_TEXTLABEL}
+				TextColor3={SDK_UI_STYLE.col_error[0]}
+				TextWrapped={true}
+				TextXAlignment={"Left"}
+				Text={problem}
+				TextSize={16}
+				Visible={problem !== ""}
+				LayoutOrder={5}
+			/>
+
+			<frame
+				Size={new UDim2(1, 0, 0, 1)}
+				BackgroundColor3={SDK_UI_STYLE.zinc800[0]}
+				BorderSizePixel={0}
+				LayoutOrder={6}
+			/>
 
 			{/* import */}
 			<textbox
@@ -104,6 +158,7 @@ export function Plugin({ plugin }: props): React.Element {
 				Text={""}
 				PlaceholderText={"Modfile source for decode"}
 				BackgroundColor3={new Color3()}
+				LayoutOrder={7}
 			/>
 			<Button
 				text={"decode modfile to model"}
@@ -117,6 +172,7 @@ export function Plugin({ plugin }: props): React.Element {
 					if (typeIs(output, "string")) return warn(output);
 					unpack_modfile(output);
 				}}
+				layout_order={8}
 			/>
 		</frame>
 	);

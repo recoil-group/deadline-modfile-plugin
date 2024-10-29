@@ -6,6 +6,7 @@ export const SDK_UI_STYLE = {
 
 	font: React.createBinding(Enum.Font.RobotoMono),
 	col_accent: React.createBinding(Color3.fromHex("#3b82f6")),
+	col_error: React.createBinding(Color3.fromHex("#f83a3a")),
 
 	zinc50: React.createBinding(Color3.fromHex("#fafafa")),
 	zinc100: React.createBinding(Color3.fromHex("#f4f4f5")),
