@@ -7,6 +7,7 @@ import { Button } from "./component/Button";
 const Selection = game.GetService("Selection");
 const ServerScriptService = game.GetService("ServerScriptService");
 const Workspace = game.GetService("Workspace");
+const HttpService = game.GetService("HttpService");
 
 function unpack_modfile(modfile: Modfile.file) {
 	const { class_declarations, instance_declarations, script_declarations, map_declarations } = modfile;
@@ -51,6 +52,7 @@ type props = {
 export function Plugin({ plugin }: props): React.Element {
 	const input_ref = React.useRef<TextBox>();
 	const [problem, set_problem] = React.useState("");
+	const [problem_color, set_problem_color] = React.useState("error");
 
 	return (
 		<frame {...RESET_FRAME} Size={new UDim2(1, 0, 1, 0)} BackgroundColor3={SDK_UI_STYLE.zinc900[0].getValue()}>
@@ -96,6 +98,7 @@ export function Plugin({ plugin }: props): React.Element {
 							message +=
 								"\nThere is a DeadlineTestMod in the workspace, which is probably what you're trying to select. Select it and then click export again.";
 						set_problem(message);
+						set_problem_color("error");
 
 						return;
 					}
@@ -108,38 +111,77 @@ export function Plugin({ plugin }: props): React.Element {
 								"\nThere is a DeadlineTestMod in the workspace, which is probably what you're trying to select. Select it and then click export again.";
 
 						set_problem(message);
+						set_problem_color("error");
 
 						return;
 					}
 
-					const [success, fail] = pcall(() => {
-						const out = ModfilePackager.encode(current_selection[0]);
+					// mod bundle creation attempt
+					let target_source = "";
+					{
+						const [success, fail] = pcall(() => {
+							const out = ModfilePackager.encode(current_selection[0]);
+							target_source = `load_modfile('${out}')`;
+						});
 
-						const module = new Instance("ModuleScript");
-						module.Source = `load_modfile('${out}')`;
-						module.Parent = game.Workspace;
+						if (!success) {
+							set_problem(`error while bundling mod: ${fail}`);
+							set_problem_color("error");
 
-						Selection.Set([module]);
-						set_problem("");
-						plugin.PromptSaveSelection(`${current_selection[0].Name}.modfile`);
-						Selection.Set(current_selection);
-						module.Destroy();
-					});
+							return;
+						}
+					}
 
-					if (!success) {
-						set_problem(`error while exporting: ${fail}`);
+					// deadlinegame.com upload attempt
+					let has_uploaded = false;
+					{
+						const [success, fail] = pcall(() => {
+							const id = HttpService.PostAsync(
+								"https://deadlinegame.com/api/mod/store",
+								target_source,
+								Enum.HttpContentType.TextPlain,
+							);
+
+							set_problem(`retrieve mod at "https://deadlinegame.com/api/mod/get/${id}"`);
+							set_problem_color("accent");
+
+							has_uploaded = true;
+						});
+					}
+
+					if (!has_uploaded) {
+						const [success, fail] = pcall(() => {
+							const module = new Instance("ModuleScript");
+							module.Source = target_source;
+							module.Parent = game.Workspace;
+
+							Selection.Set([module]);
+							set_problem("couldn't export with website, saving to file");
+							set_problem_color("error");
+
+							plugin.PromptSaveSelection(`${current_selection[0].Name}.modfile`);
+							Selection.Set(current_selection);
+							module.Destroy();
+						});
+
+						if (!success) {
+							set_problem(`couldn't export with website\nerror while exporting: ${fail}`);
+							set_problem_color("error");
+						}
 					}
 				}}
 				layout_order={4}
 			/>
 
-			<textlabel
+			<textbox
 				{...RESET_TEXTLABEL}
-				TextColor3={SDK_UI_STYLE.col_error[0]}
+				TextColor3={problem_color === "error" ? SDK_UI_STYLE.col_error[0] : SDK_UI_STYLE.col_accent[0]}
 				TextWrapped={true}
 				TextXAlignment={"Left"}
 				Text={problem}
 				TextSize={16}
+				ClearTextOnFocus={false}
+				TextEditable={false}
 				Visible={problem !== ""}
 				LayoutOrder={5}
 			/>
