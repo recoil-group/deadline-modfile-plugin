@@ -9,6 +9,9 @@ const ServerScriptService = game.GetService("ServerScriptService");
 const Workspace = game.GetService("Workspace");
 const HttpService = game.GetService("HttpService");
 
+const KB = 1000;
+const MODFILE_SEGMENT_SIZE = KB * 500;
+
 function unpack_modfile(modfile: Modfile.file) {
 	const { class_declarations, instance_declarations, script_declarations, map_declarations } = modfile;
 	const folder = new Instance("Folder");
@@ -136,11 +139,21 @@ export function Plugin({ plugin }: props): React.Element {
 					let has_uploaded = false;
 					{
 						const [success, fail] = pcall(() => {
-							const id = HttpService.PostAsync(
-								"https://deadlinegame.com/api/mod/store",
-								target_source,
-								Enum.HttpContentType.TextPlain,
-							);
+							const id = HttpService.PostAsync("https://deadlinegame.com/api/mod/create", "");
+							const segments: string[] = [];
+
+							// split target_source into 100k str segments
+							for (let i = 0; i < target_source.size(); i += MODFILE_SEGMENT_SIZE) {
+								segments.push(target_source.sub(i, i + MODFILE_SEGMENT_SIZE));
+							}
+
+							for (const value of segments) {
+								HttpService.PostAsync(
+									`https://deadlinegame.com/api/mod/upload/${id}`,
+									value,
+									Enum.HttpContentType.TextPlain,
+								);
+							}
 
 							set_problem(`retrieve mod at "https://deadlinegame.com/api/mod/get/${id}"`);
 							set_problem_color("accent");
