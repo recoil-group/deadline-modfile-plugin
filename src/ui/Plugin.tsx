@@ -144,7 +144,7 @@ export function Plugin({ plugin }: props): React.Element {
 
 							// split target_source into 100k str segments
 							for (let i = 0; i < target_source.size(); i += MODFILE_SEGMENT_SIZE) {
-								segments.push(target_source.sub(i, i + MODFILE_SEGMENT_SIZE));
+								segments.push(target_source.sub(i, i + (MODFILE_SEGMENT_SIZE - 1)));
 							}
 
 							for (const value of segments) {
