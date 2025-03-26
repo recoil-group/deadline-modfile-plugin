@@ -122,15 +122,23 @@ export function Plugin({ plugin }: props): React.Element {
 					// mod bundle creation attempt
 					let target_source = "";
 					{
-						const [success, fail] = pcall(() => {
-							const out = ModfilePackager.encode(current_selection[0]);
-							target_source = `load_modfile('${out}')`;
-						});
+						const [success, fail] = xpcall(
+							() => {
+								const out = ModfilePackager.encode(current_selection[0]);
+								target_source = `load_modfile('${out}')`;
+							},
+							(err) => {
+								set_problem_color("error");
+								set_problem(
+									`error while bundling mod: ${err} @ ${debug.traceback(
+										"error_handler_callback",
+										1,
+									)}`,
+								);
+							},
+						);
 
 						if (!success) {
-							set_problem(`error while bundling mod: ${fail}`);
-							set_problem_color("error");
-
 							return;
 						}
 					}
@@ -138,49 +146,66 @@ export function Plugin({ plugin }: props): React.Element {
 					// deadlinegame.com upload attempt
 					let has_uploaded = false;
 					{
-						const [success, fail] = pcall(() => {
-							const id = HttpService.PostAsync("https://deadlinegame.com/api/mod/create", "");
-							const segments: string[] = [];
-
-							// split target_source into 100k str segments
-							for (let i = 0; i < target_source.size(); i += MODFILE_SEGMENT_SIZE) {
-								segments.push(target_source.sub(i, i + (MODFILE_SEGMENT_SIZE - 1)));
-							}
-
-							for (const value of segments) {
-								HttpService.PostAsync(
-									`https://deadlinegame.com/api/mod/upload/${id}`,
-									value,
-									Enum.HttpContentType.TextPlain,
+						xpcall(
+							() => {
+								const id = HttpService.PostAsync(
+									"https://deadlinegame.com/api/mod/create",
+									"",
+									"TextPlain",
 								);
-							}
 
-							set_problem(`retrieve mod at "https://deadlinegame.com/api/mod/get/${id}"`);
-							set_problem_color("accent");
+								// split target_source into 100k str segments
+								const segments: string[] = [];
+								if (target_source.size() < MODFILE_SEGMENT_SIZE) segments.push(target_source);
+								else
+									for (let i = 0; i < target_source.size(); i += MODFILE_SEGMENT_SIZE) {
+										segments.push(target_source.sub(i, i + (MODFILE_SEGMENT_SIZE - 1)));
+									}
 
-							has_uploaded = true;
-						});
+								for (const value of segments) {
+									HttpService.PostAsync(
+										`https://deadlinegame.com/api/mod/upload/${id}`,
+										value,
+										Enum.HttpContentType.TextPlain,
+									);
+								}
+
+								set_problem(`https://deadlinegame.com/api/mod/get/${id}`);
+								set_problem_color("accent");
+
+								has_uploaded = true;
+							},
+							(err) => {
+								set_problem_color("error");
+								set_problem(
+									`error while uploading: ${err} @ ${debug.traceback("error_handler_callback", 1)}`,
+								);
+							},
+						);
 					}
 
 					if (!has_uploaded) {
-						const [success, fail] = pcall(() => {
-							const module = new Instance("ModuleScript");
-							module.Source = target_source;
-							module.Parent = game.Workspace;
+						xpcall(
+							() => {
+								const module = new Instance("ModuleScript");
+								module.Source = target_source;
+								module.Parent = game.Workspace;
 
-							Selection.Set([module]);
-							set_problem("couldn't export with website, saving to file");
-							set_problem_color("error");
+								Selection.Set([module]);
+								set_problem("couldn't export with website, saving to file");
+								set_problem_color("error");
 
-							plugin.PromptSaveSelection(`${current_selection[0].Name}.modfile`);
-							Selection.Set(current_selection);
-							module.Destroy();
-						});
-
-						if (!success) {
-							set_problem(`couldn't export with website\nerror while exporting: ${fail}`);
-							set_problem_color("error");
-						}
+								plugin.PromptSaveSelection(`${current_selection[0].Name}.modfile`);
+								Selection.Set(current_selection);
+								module.Destroy();
+							},
+							(err) => {
+								set_problem_color("error");
+								set_problem(
+									`error while exporting: ${err} @ ${debug.traceback("error_handler_callback", 1)}`,
+								);
+							},
+						);
 					}
 				}}
 				layout_order={4}
