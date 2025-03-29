@@ -3,6 +3,7 @@ import padding from "./util/padding";
 import { RESET_BUTTON, RESET_FRAME, RESET_TEXTLABEL, SDK_UI_STYLE } from "./util/ui_style";
 import { Modfile, ModfilePackager } from "@rbxts/dl-modfile-packager";
 import { Button } from "./component/Button";
+import { refresh_script_sources } from "./util/refresh_script_sources";
 
 const Selection = game.GetService("Selection");
 const ServerScriptService = game.GetService("ServerScriptService");
@@ -118,6 +119,8 @@ export function Plugin({ plugin }: props): React.Element {
 
 						return;
 					}
+
+					refresh_script_sources(current_selection[0]);
 
 					// mod bundle creation attempt
 					let target_source = "";
