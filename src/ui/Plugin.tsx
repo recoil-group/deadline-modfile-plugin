@@ -3,7 +3,6 @@ import padding from "./util/padding";
 import { RESET_BUTTON, RESET_FRAME, RESET_TEXTLABEL, SDK_UI_STYLE } from "./util/ui_style";
 import { Modfile, ModfilePackager } from "@rbxts/dl-modfile-packager";
 import { Button } from "./component/Button";
-import { refresh_script_sources } from "./util/refresh_script_sources";
 
 const Selection = game.GetService("Selection");
 const ServerScriptService = game.GetService("ServerScriptService");
@@ -93,7 +92,7 @@ export function Plugin({ plugin }: props): React.Element {
 			<Button
 				text={"export selected instance"}
 				onclick={() => {
-					const current_selection = Selection.Get();
+					let current_selection = Selection.Get();
 					const has_mod_marker = Workspace.FindFirstChild("DeadlineTestMod");
 
 					if (current_selection[0] === undefined) {
@@ -120,7 +119,15 @@ export function Plugin({ plugin }: props): React.Element {
 						return;
 					}
 
-					refresh_script_sources(current_selection[0]);
+					// clone the selection to refresh script source
+					{
+						const cloned_selection = current_selection[0].Clone();
+						cloned_selection.Parent = current_selection[0].Parent;
+						cloned_selection.Name = current_selection[0].Name;
+
+						current_selection[0].Destroy();
+						current_selection = [cloned_selection];
+					}
 
 					// mod bundle creation attempt
 					let target_source = "";
