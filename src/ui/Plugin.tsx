@@ -45,7 +45,10 @@ function unpack_modfile(modfile: Modfile.file) {
 		scrip.Parent = folder;
 	});
 
-	folder.Parent = ServerScriptService;
+	folder.Name = `${modfile.info!.name}_import`;
+	folder.Parent = Workspace;
+
+	Selection.Set([folder]);
 }
 
 type props = {
