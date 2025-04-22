@@ -68,9 +68,18 @@ export function Plugin({ plugin }: props): React.Element {
 			<textlabel
 				{...RESET_TEXTLABEL}
 				TextColor3={SDK_UI_STYLE.zinc200[0]}
-				Text={`Deadline Modding Tool ${ModfilePackager.PACKAGER_VERSION}`}
+				Text={`Deadline Modding Plugin ${ModfilePackager.PLUGIN_VERSION}`}
 				TextXAlignment={"Left"}
 				TextSize={24}
+				LayoutOrder={1}
+			/>
+
+			<textlabel
+				{...RESET_TEXTLABEL}
+				TextColor3={SDK_UI_STYLE.zinc400[0]}
+				Text={`ModfilePackager version ${ModfilePackager.PACKAGER_FORMAT_VERSION}`}
+				TextXAlignment={"Left"}
+				TextSize={18}
 				LayoutOrder={1}
 			/>
 
