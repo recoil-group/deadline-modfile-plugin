@@ -3,8 +3,14 @@
 /include
 *.tsbuildinfo
 
+# node
+package-lock.json
+
 # what is this
 blackshibe-deadline-sdk-* 
 
 # built plugin
 model.rbxm
+
+# rojo
+sourcemap.json
